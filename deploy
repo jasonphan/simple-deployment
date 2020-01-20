@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+
+shared_folders=(
+    'releases'
+    'shared'
+)
+
+shared_files=(
+    '.env'
+)
+
+# config
+site=""
+max_releases=5
+
+# npm config
+build="run build"
+
+# git config
+repository=""
+branch=${1:-develop}
+
+# binaries
+npm=`which npm`
+git=`which git`
+pwd=`pwd`
+
+function remove_latest_release() {
+    cd "${pwd}/releases"
+
+    release_number=$(ls | sort -r -n | head -n 1)
+
+    if [ ! -z $release_number ]; then
+        rm -rf "${pwd}/releases/${release_number}"
+    fi
+}
+
+if [[ $1 == "unlock" ]]; then
+    if [[ -f "${pwd}/lock" ]]; then
+        if [[ -d "${pwd}/releases" ]]; then
+            remove_latest_release
+        fi
+
+        echo "Removing lock..."
+        cd $pwd
+        rm lock
+
+        if [[ -f "${pwd}/release" ]]; then
+            rm release
+        fi
+    fi
+
+    exit 0
+fi
+
+function error_check() {
+    if [ $? -ne 0 ]; then
+        remove_latest_release
+
+        echo "DEPLOY FAILED!!!"
+        exit 1
+    fi
+}
+
+function deploy_prepare() {
+    echo "Initializing..."
+
+    if [[ -f lock ]]; then
+        echo "Run './dep unlock' to remove the lock and deploy again."
+        exit 0
+    fi
+
+    for folder in ${shared_folders[@]}; do
+        if [[ ! -d "${pwd}/${folder}" ]]; then
+            mkdir $folder
+        fi
+    done
+
+    for file in ${shared_files[@]}; do
+        if [[ ! -f "${pwd}/shared/${file}" ]]; then
+            touch "${pwd}/shared/${file}"
+        fi
+    done
+}
+
+function deploy_lock() {
+    echo "Locking deployment..."
+    cd $pwd
+    touch lock
+}
+
+function deploy_release() {
+    cd $pwd
+    touch release
+
+    cd "${pwd}/releases"
+    old_release=$(ls | sort -r -n | head -n 1)
+    release_number=$(( old_release + 1 ))
+    mkdir $release_number
+
+    echo "Deploying release ${release_number}..."
+}
+
+function deploy_clone() {
+    echo "Cloning branch ${branch}"
+
+    $git clone $repository --branch $branch --single-branch "${pwd}/releases/${release_number}"
+
+    error_check
+}
+
+function deploy_shared() {
+    for file in ${shared_files[@]}; do
+        if [ -f "${pwd}/releases/${release_number}/${file}" ]; then
+            rm "${pwd}/releases/${release_number}/${file}"
+        fi
+
+        ln -s "${pwd}/shared/${file}" "${pwd}/releases/${release_number}/${file}"
+    done
+}
+
+function npm_install() {
+    echo "Installing node modules..."
+
+    if [ ! -z $old_release ]; then
+        if [ -d "${pwd}/releases/${old_release}/node_modules" ]; then
+            cp -R "${pwd}/releases/${old_release}/node_modules" "${pwd}/releases/${release_number}"
+
+            if (( $(diff "${pwd}/releases/${old_release}/package.json" "${pwd}/releases/${release_number}/package.json" | wc -l) == 0 )); then
+                return
+            fi
+        fi
+    fi
+
+    cd "${pwd}/releases/${release_number}" && $npm install
+
+    error_check
+}
+
+function npm_build() {
+    echo "Building..."
+
+    cd "${pwd}/releases/${release_number}" && $npm $build
+
+    error_check
+}
+
+function deploy_symlink() {
+    echo "Deploying symlink..."
+
+    ln -nfs "${pwd}/releases/${release_number}" "${pwd}/current"
+}
+
+function clean_up() {
+    cd "${pwd}/releases"
+
+    if (( "$release_number" > "$max_releases" )); then
+        releases=`ls | sort -n | head -n $(( $(ls | wc -l) - max_releases ))`
+
+        for release in ${releases[@]}; do
+            rm -rf $release
+        done
+    fi
+
+    cd $pwd
+    rm release
+}
+
+function deploy_unlock() {
+    echo "Unlocking deployment..."
+    cd $pwd
+    rm lock
+}
+
+function success() {
+    echo "Successfully deployed at ${site}"
+}
+
+deploy_prepare
+deploy_lock
+deploy_release
+deploy_clone
+deploy_shared
+
+npm_install
+npm_build
+
+deploy_symlink
+clean_up
+deploy_unlock
+success

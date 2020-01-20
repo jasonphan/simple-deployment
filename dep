@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+user=""
+hostname=""
+src=""
+default_branch=""
+
+if [[ -z $user ]]; then
+    echo "user not set in deployment configuration."
+    exit 1
+fi
+
+if [[ -z $hostname ]]; then
+    echo "hostname not set in deployment configuration."
+    exit 1
+fi
+
+if [[ -z $src ]]; then
+    echo "src not set in deployment configuration."
+    exit 1
+fi
+
+if [[ -z "$1" ]]; then
+    branch=$default_branch
+else
+    branch=$1
+fi
+
+ssh $user@$hostname -t -A  "
+cd ${src} && ./deploy ${branch}"
