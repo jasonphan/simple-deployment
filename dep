@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 
+# User to log into the remote server.
 user=""
+
+# Host of the remote server.
 hostname=""
-src=""
+
+# Root folder of the project to be deployed.
+project_root=""
+
+# Default git branch of the project.
 default_branch=""
 
 if [[ -z $user ]]; then
@@ -15,8 +22,8 @@ if [[ -z $hostname ]]; then
     exit 1
 fi
 
-if [[ -z $src ]]; then
-    echo "src not set in deployment configuration."
+if [[ -z $project_root ]]; then
+    echo "project root not set in deployment configuration."
     exit 1
 fi
 
@@ -27,4 +34,4 @@ else
 fi
 
 ssh $user@$hostname -t -A  "
-cd ${src} && ./deploy ${branch}"
+cd ${project_root} && ./deploy ${branch}"

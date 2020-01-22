@@ -2,7 +2,7 @@
 For deploying sites from frontend frameworks such as Vue.js
 
 ## Getting Started
-Clone this repository: `git clone git@github.com:jasonphan/simple-deployment.git`
+Clone this repository.
 
 Modify the configuration within the `dep` file.
 ```
@@ -13,7 +13,7 @@ user=""
 hostname=""
 
 # Root folder of the project to be deployed.
-src=""
+project_root=""
 
 # Default branch of the project.
 default_branch=""
@@ -46,5 +46,7 @@ Add executable permissions on both `dep` and `deploy` files.
 chmod +x dep
 chmod +x deploy
 ```
+
+Make sure your ssh key is added to the remote server.
 
 To deploy run `./dep your-branch` or `./dep` to deploy your default branch.

@@ -5,18 +5,21 @@ shared_folders=(
     'shared'
 )
 
+# Files that are shared between releases.
 shared_files=(
     '.env'
 )
 
-# config
+# Site URL of the project to be deployed.
 site=""
+
+# Number of max releases to be kept by the deployment tool.
 max_releases=5
 
-# npm config
+# The project node build command.
 build="run build"
 
-# git config
+# The git repository of the project.
 repository=""
 branch=${1:-develop}
 
