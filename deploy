@@ -29,6 +29,7 @@ npm=`which npm`
 git=`which git`
 pwd=`pwd`
 dirname=`which dirname`
+#pm2=`which pm2`
 
 function remove_latest_release() {
     cd "${pwd}/releases"
@@ -149,10 +150,37 @@ function npm_install() {
     error_check
 }
 
+function npm_install_server() {
+    echo "Installing server node modules..."
+
+    if [ ! -z $old_release ]; then
+        if [ -d "${pwd}/releases/${old_release}/server/node_modules" ]; then
+            cp -R "${pwd}/releases/${old_release}/server/node_modules" "${pwd}/releases/${release_number}/server"
+
+            if (( $(diff "${pwd}/releases/${old_release}/server/package.json" "${pwd}/releases/${release_number}/server/package.json" | wc -l) == 0 )); then
+                return
+            fi
+        fi
+    fi
+
+    cd "${pwd}/releases/${release_number}/server" && $npm install
+
+    error_check
+}
+
 function npm_build() {
     echo "Building..."
 
     cd "${pwd}/releases/${release_number}" && $npm $build
+
+    error_check
+}
+
+function deploy_node_server() {
+    echo "Deploying node server..."
+
+    $pm2 delete all
+    $pm2 start "${pwd}/releases/${release_number}/server/${server_js}.js"
 
     error_check
 }
@@ -196,6 +224,9 @@ deploy_shared
 
 npm_install
 npm_build
+
+#npm_install_server
+#deploy_node_server
 
 deploy_symlink
 clean_up
