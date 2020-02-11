@@ -19,6 +19,7 @@ max_releases=5
 
 # The project node build command.
 build="run build"
+#server_js="index"
 
 # The git repository of the project.
 repository=""
