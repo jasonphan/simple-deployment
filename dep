@@ -4,7 +4,7 @@
 user=""
 
 # Host of the remote server.
-hostname=""
+host=""
 
 # Root folder of the project to be deployed.
 project_root=""
@@ -17,8 +17,8 @@ if [[ -z $user ]]; then
     exit 1
 fi
 
-if [[ -z $hostname ]]; then
-    echo "hostname not set in deployment configuration."
+if [[ -z $host ]]; then
+    echo "host not set in deployment configuration."
     exit 1
 fi
 
@@ -33,5 +33,5 @@ else
     branch=$1
 fi
 
-ssh $user@$hostname -t -A  "
+ssh $user@$host -t -A  "
 cd ${project_root} && ./deploy ${branch}"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-shared_folders=(
+base_folders=(
     'releases'
     'shared'
 )
@@ -8,6 +8,7 @@ shared_folders=(
 # Files that are shared between releases.
 shared_files=(
     '.env'
+    'server/.env'
 )
 
 # Site URL of the project to be deployed.
@@ -27,6 +28,7 @@ branch=${1:-develop}
 npm=`which npm`
 git=`which git`
 pwd=`pwd`
+dirname=`which dirname`
 
 function remove_latest_release() {
     cd "${pwd}/releases"
@@ -73,17 +75,24 @@ function deploy_prepare() {
         exit 0
     fi
 
-    for folder in ${shared_folders[@]}; do
+    for folder in ${base_folders[@]}; do
         if [[ ! -d "${pwd}/${folder}" ]]; then
             mkdir $folder
         fi
     done
 
     for file in ${shared_files[@]}; do
-        if [[ ! -f "${pwd}/shared/${file}" ]]; then
-            touch "${pwd}/shared/${file}"
+        if [ $(dirname "${file}") == "." ]; then
+            if [[ ! -f "${pwd}/shared/${file}" ]]; then
+                touch "${pwd}/shared/${file}"
+            fi
+        else
+            if [[ ! -f "${pwd}/shared/${file}" ]]; then
+                mkdir -p "${pwd}/shared/$(dirname "$file")"
+                touch "${pwd}/shared/${file}"
+            fi
         fi
-    done
+    done  
 }
 
 function deploy_lock() {

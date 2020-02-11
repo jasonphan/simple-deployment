@@ -1,5 +1,5 @@
 # Simple Deployment Tool
-For deploying sites from frontend frameworks such as Vue.js
+For deploying sites from frontend frameworks such as Vue.js, React...
 
 ## Getting Started
 Clone this repository.
@@ -10,7 +10,7 @@ Modify the configuration within the `dep` file.
 user=""
 
 # Host of the remote server.
-hostname=""
+host=""
 
 # Root folder of the project to be deployed.
 project_root=""
@@ -26,6 +26,7 @@ Modify the configuration within the `deploy` file.
 # Files that are shared between releases.
 shared_files=(
     '.env'
+    'server/.env
 )
 
 # Site URL of the project to be deployed.
