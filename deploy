@@ -180,8 +180,9 @@ function npm_build() {
 function deploy_node_server() {
     echo "Deploying node server..."
 
+    cd "${pwd}/releases/${release_number}/server"
     $pm2 delete all
-    $pm2 start "${pwd}/releases/${release_number}/server/${server_js}.js"
+    $pm2 start "${server_js}.js"
 
     error_check
 }
