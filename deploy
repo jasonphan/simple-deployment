@@ -19,7 +19,8 @@ max_releases=5
 
 # The project node build command.
 build="run build"
-#server_js="index"
+#server_file="index.js"
+#server_alias="server_alias"
 
 # The git repository of the project.
 repository=""
@@ -181,8 +182,8 @@ function deploy_node_server() {
     echo "Deploying node server..."
 
     cd "${pwd}/releases/${release_number}/server"
-    $pm2 delete all
-    $pm2 start "${server_js}.js"
+    $pm2 delete "${server_alias}"
+    $pm2 start "${server_file}" --name "${server_alias}"
 
     error_check
 }
