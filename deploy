@@ -130,6 +130,10 @@ function deploy_shared() {
             rm "${pwd}/releases/${release_number}/${file}"
         fi
 
+        if [ ! -d "${pwd}/releases/${release_number}/$(dirname "$file")" ]; then
+            mkdir -p "${pwd}/releases/${release_number}/$(dirname "$file")"
+        fi
+
         ln -s "${pwd}/shared/${file}" "${pwd}/releases/${release_number}/${file}"
     done
 }
