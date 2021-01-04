@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
 
-# User to log into the remote server.
-user=""
+# User with access to the remote server.
+remote_user=""
 
 # Host of the remote server.
-host=""
+remote_host=""
 
 # Root folder of the project to be deployed.
 project_root=""
 
 # Default git branch of the project.
-default_branch=""
+git_default_branch="develop"
 
-if [[ -z $user ]]; then
-    echo "user not set in deployment configuration."
+if [[ -z $remote_user ]]; then
+    echo "remote_user not set in deployment configuration."
     exit 1
 fi
 
-if [[ -z $host ]]; then
-    echo "host not set in deployment configuration."
+if [[ -z $remote_host ]]; then
+    echo "remote_host not set in deployment configuration."
     exit 1
 fi
 
@@ -28,10 +28,10 @@ if [[ -z $project_root ]]; then
 fi
 
 if [[ -z "$1" ]]; then
-    branch=$default_branch
+    branch=$git_default_branch
 else
     branch=$1
 fi
 
-ssh $user@$host -t -A  "
+ssh $remote_user@$remote_host -t -A  "
 cd ${project_root} && ./deploy ${branch}"

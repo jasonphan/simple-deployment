@@ -1,37 +1,42 @@
 #!/usr/bin/env bash
 
-base_folders=(
-    'releases'
-    'shared'
-)
-
 # Files that are shared between releases.
 shared_files=(
-    '.env'
+    'client/.env'
     'server/.env'
 )
 
 # Site URL of the project to be deployed.
-site=""
+site_url=""
 
-# Number of max releases to be kept by the deployment tool.
+# Number of releases to be kept from deployment.
 max_releases=5
 
 # The project node build command.
 build="run build"
-#server_file="index.js"
-#server_alias="server_alias"
+
+# Relative client folder path from project root.
+client_path="client"
+
+# Relative server folder path from project root.
+server_path="server"
+
+# Node server entrypoint file.
+server_file="index.js"
+
+# PM2 name alias for the server.
+server_alias="server_alias"
 
 # The git repository of the project.
 repository=""
+
 branch=${1:-develop}
 
-# binaries
 npm=`which npm`
 git=`which git`
 pwd=`pwd`
 dirname=`which dirname`
-#pm2=`which pm2`
+pm2=`which pm2`
 
 function remove_latest_release() {
     cd "${pwd}/releases"
@@ -42,24 +47,6 @@ function remove_latest_release() {
         rm -rf "${pwd}/releases/${release_number}"
     fi
 }
-
-if [[ $1 == "unlock" ]]; then
-    if [[ -f "${pwd}/lock" ]]; then
-        if [[ -d "${pwd}/releases" ]]; then
-            remove_latest_release
-        fi
-
-        echo "Removing lock..."
-        cd $pwd
-        rm lock
-
-        if [[ -f "${pwd}/release" ]]; then
-            rm release
-        fi
-    fi
-
-    exit 0
-fi
 
 function error_check() {
     if [ $? -ne 0 ]; then
@@ -74,9 +61,14 @@ function deploy_prepare() {
     echo "Initializing..."
 
     if [[ -f lock ]]; then
-        echo "Run './dep unlock' to remove the lock and deploy again."
+        echo "Run './dep unlock' to remove the lock."
         exit 0
     fi
+
+    base_folders=(
+        'releases'
+        'shared'
+    )
 
     for folder in ${base_folders[@]}; do
         if [[ ! -d "${pwd}/${folder}" ]]; then
@@ -119,7 +111,7 @@ function deploy_release() {
 function deploy_clone() {
     echo "Cloning branch ${branch}"
 
-    $git clone $repository --branch $branch --single-branch "${pwd}/releases/${release_number}"
+    $git clone $repository --depth 1 --branch $branch --single-branch "${pwd}/releases/${release_number}"
 
     error_check
 }
@@ -139,37 +131,21 @@ function deploy_shared() {
 }
 
 function npm_install() {
-    echo "Installing node modules..."
+    path=$1
+
+    echo "Installing ${path} node modules..."
 
     if [ ! -z $old_release ]; then
-        if [ -d "${pwd}/releases/${old_release}/node_modules" ]; then
-            cp -R "${pwd}/releases/${old_release}/node_modules" "${pwd}/releases/${release_number}"
+        if [ -d "${pwd}/releases/${old_release}/${path}/node_modules" ]; then
+            cp -R "${pwd}/releases/${old_release}/${path}/node_modules" "${pwd}/releases/${release_number}/${path}"
 
-            if (( $(diff "${pwd}/releases/${old_release}/package.json" "${pwd}/releases/${release_number}/package.json" | wc -l) == 0 )); then
+            if (( $(diff "${pwd}/releases/${old_release}/${path}/package.json" "${pwd}/releases/${release_number}/${path}/package.json" | wc -l) == 0 )); then
                 return
             fi
         fi
     fi
 
-    cd "${pwd}/releases/${release_number}" && $npm install
-
-    error_check
-}
-
-function npm_install_server() {
-    echo "Installing server node modules..."
-
-    if [ ! -z $old_release ]; then
-        if [ -d "${pwd}/releases/${old_release}/server/node_modules" ]; then
-            cp -R "${pwd}/releases/${old_release}/server/node_modules" "${pwd}/releases/${release_number}/server"
-
-            if (( $(diff "${pwd}/releases/${old_release}/server/package.json" "${pwd}/releases/${release_number}/server/package.json" | wc -l) == 0 )); then
-                return
-            fi
-        fi
-    fi
-
-    cd "${pwd}/releases/${release_number}/server" && $npm install
+    cd "${pwd}/releases/${release_number}/${path}" && $npm install
 
     error_check
 }
@@ -177,7 +153,7 @@ function npm_install_server() {
 function npm_build() {
     echo "Building..."
 
-    cd "${pwd}/releases/${release_number}" && $npm $build
+    cd "${pwd}/releases/${release_number}/${client_path}" && $npm $build
 
     error_check
 }
@@ -220,8 +196,26 @@ function deploy_unlock() {
 }
 
 function success() {
-    echo "Successfully deployed at ${site}"
+    echo "Successfully deployed at ${site_url}"
 }
+
+if [[ $1 == "unlock" ]]; then
+    if [[ -f "${pwd}/lock" ]]; then
+        if [[ -d "${pwd}/releases" ]]; then
+            remove_latest_release
+        fi
+
+        echo "Removing lock..."
+        cd $pwd
+        rm lock
+
+        if [[ -f "${pwd}/release" ]]; then
+            rm release
+        fi
+    fi
+
+    exit 0
+fi
 
 deploy_prepare
 deploy_lock
@@ -229,11 +223,13 @@ deploy_release
 deploy_clone
 deploy_shared
 
-npm_install
+npm_install $client_path
 npm_build
 
-#npm_install_server
-#deploy_node_server
+if [[ ! -z $server_path ]] && [[ ! -z $server_file ]]; then
+    npm_install $server_path
+    deploy_node_server
+fi
 
 deploy_symlink
 clean_up
